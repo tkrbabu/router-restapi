@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Router Details</title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+</head>
+<body>
+	<style type="text/css">
+	.cen {
+  text-align: center;
+  border: 3px solid green;
+  background-color: #B0C4DE	;
+}
+</style>
+<div class="cen navbar-dark">
+welcome
+	<h2 >Router Details</h2> </div>
+	<TABLE class="table">
+		<tr class="thead-dark">
+			<th>SapID</th>
+			<th>Hostname</th>
+			<th>Loopback</th>
+			<th>MAC address</th>
+			<th> </th>
+			<th> </th>
+		</tr>
+		<table class="table text-right" id="list-wrapper"></table>
+	</TABLE>
+	<hr>
+	<div id="rcrt" class="cen">
+			Add New/Update router details
+
+		<form id="formid" >
+			<input id="sid" type="text" name="sid" placeholder="sapID"/>
+			<input id="hname" type="text" name="hname" placeholder="host name">
+			<input id="loopback" type="text" name="loopback" placeholder="loopback id">
+			<input id="mac" type="text" name="mac" placeholder="MAC address">
+			<input id="submit" class="btn btn-primary" type="submit" value="Update/Create">
+			<input id="reset" class="btn btn-primary" type="reset" value="Reset"><br>
+			<button id='bulk' class="btn btn-sm btn-info bulk" onclick=bulkBuild()>Bulk Create</button><br>
+		</form>
+		
+	</div>
+	<script type="text/javascript">
+		function getCookie(name) {
+		    let cookieValue = null;
+		    if (document.cookie && document.cookie !== '') {
+		        const cookies = document.cookie.split(';');
+		        for (let i = 0; i < cookies.length; i++) {
+		            const cookie = cookies[i].trim();
+		            // Does this cookie string begin with the name we want?
+		            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+		                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+		                break;
+		            }
+		        }
+		    }
+		    return cookieValue;
+		}
+		const csrftoken = getCookie('csrftoken');
+		var activeItem = null
+		buildList()
+		function bulkBuild()
+		{
+			var url="http://127.0.0.1:8000/r/tbulk/"
+			fetch(url)
+			.then(console.log("hello"))
+
+		}
+
+		function buildList()
+		{
+			var wrapper=document.getElementById('list-wrapper')
+			wrapper.innerHTML=""
+			var url= "http://127.0.0.1:8000/r/tlst/"
+			fetch(url)
+			.then((resp)=>resp.json())
+			.then(function(data){
+				console.log('Data:',data)
+				var list=data
+				for(var i in list){
+					var item=`
+						<tr>
+						<td>${list[i].sapid}</td>
+						<td>${list[i].hostname}</td>
+						<td>${list[i].loopbackid}</td>
+						<td>${list[i].mac_add}</td>
+						<td><button class="btn btn-sm btn-success edit">Update </button></td>
+						<td><button class="btn btn-sm btn-danger delete">Delete </button><br></td></tr>
+					`
+					wrapper.innerHTML+=item
+				}
+
+				for(var i in list){
+					var editBtn=document.getElementsByClassName('edit')[i]
+					var deleteBtn = document.getElementsByClassName('delete')[i]
+					editBtn.addEventListener('click', (function(item){
+						return function(){
+							editItem(item)
+						}
+					})(list[i]))
+
+
+					deleteBtn.addEventListener('click', (function(item){
+						return function(){
+							deleteItem(item)
+						}
+					})(list[i]))
+
+				}
+
+			})
+		}
+
+
+
+		var form = document.getElementById('rcrt')
+		form.addEventListener('submit', function(e){
+			e.preventDefault()
+			console.log('Form submitted')
+			var url="http://127.0.0.1:8000/r/tcreate/"
+			if (activeItem != null){
+				url = `http://127.0.0.1:8000/r/tupdate/${activeItem.rid}/`
+				activeItem = null
+			}
+			var sid=document.getElementById('sid').value
+			var hname=document.getElementById('hname').value
+			var loopback=document.getElementById('loopback').value
+			var mac=document.getElementById('mac').value
+			var id="10"
+			fetch(url, {
+				method:'POST',
+				headers:{
+					'Content-type':'application/json',
+					'X-CSRFToken':csrftoken,
+				},
+				body:JSON.stringify({'sapid':sid,'hostname':hname,'loopbackid':loopback,'mac_add':mac})
+			}).then(function(response){
+				buildList()
+				document.getElementById('formid').reset()
+				 })
+
+		})
+
+		function editItem(item){
+			console.log('Item clicked:', item)
+			activeItem = item
+			document.getElementById('sid').value=activeItem.sapid
+			document.getElementById('hname').value=activeItem.hostname
+			document.getElementById('loopback').value=activeItem.loopbackid
+			document.getElementById('mac').value=activeItem.mac_add
+		}
+		function deleteItem(item){
+			console.log('Delete clicked')
+			fetch(`http://127.0.0.1:8000/r/tdelete/${item.rid}/`, {
+				method:'DELETE', 
+				headers:{
+					'Content-type':'application/json',
+					'X-CSRFToken':csrftoken,
+				}
+			}).then((response) => {
+				buildList()
+			})
+		}
+
+	</script>
+</body>
+</html>
